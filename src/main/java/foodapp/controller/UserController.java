@@ -3,13 +3,9 @@ package foodapp.controller;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +35,7 @@ public class UserController {
 
 	private final UserService userService;
 
-	@PostMapping("/save")
+	@PostMapping
 	@Operation(summary = "Create a new user", description = "Registers a new user in the system")
 	public ResponseEntity<ResponseStructure<User>> createUser(@Valid @RequestBody User user) {
 		User savedUser = userService.createUser(user);
@@ -47,7 +43,7 @@ public class UserController {
 				.body(new ResponseStructure<>(HttpStatus.CREATED.value(), "User created Successfully!!", savedUser));
 	}
 
-	@GetMapping("/{userId}/user")
+	@GetMapping("/{userId}")
 	@Operation(summary = "Get a user by ID", description = "Retrieves a user’s details using their ID")
 	public ResponseEntity<ResponseStructure<User>> getUser(
 			@Parameter(description = "ID of the user to retrieve") @PathVariable Integer userId) {
@@ -58,9 +54,8 @@ public class UserController {
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@GetMapping("/getall")
+	@GetMapping
 	@Operation(summary = "Get all users", description = "Fetches all users from the system. Cached for better performance.")
-	@Cacheable(value = "user_cache", key = "'ALL'")
 	public ResponseEntity<ResponseStructure<List<User>>> getAllUsers() {
 		ResponseStructure<List<User>> apiResponse = new ResponseStructure<>();
 		apiResponse.setData(userService.getAllUsers());
@@ -69,9 +64,8 @@ public class UserController {
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@PutMapping("/{userId}/update")
+	@PutMapping("/{userId}")
 	@Operation(summary = "Update a user", description = "Updates user details for a given ID")
-	@CachePut(value = "user_cache", key = "#userId")
 	public ResponseEntity<ResponseStructure<User>> updateUser(
 			@Parameter(description = "ID of the user to update") @PathVariable Integer userId,
 			@Valid @RequestBody User user) {
@@ -82,21 +76,15 @@ public class UserController {
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@DeleteMapping("/{id}/delete")
+	@DeleteMapping("/{userId}")
 	@Operation(summary = "Delete a user", description = "Deletes a user by their ID and evicts them from cache")
-	@CacheEvict(value = "user_cache", key = "#id")
-	public ResponseEntity<?> deleteUser(@Parameter(description = "ID of the user to delete") @PathVariable Integer id) {
-		userService.deleteUser(id);
+	public ResponseEntity<?> deleteUser(
+			@Parameter(description = "ID of the user to delete") @PathVariable Integer userId) {
+		userService.deleteUser(userId);
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 	}
 
-	@Scheduled(fixedRate = 120000)
-	@CacheEvict(value = "user_cache", allEntries = true)
-	public void evictAllCache() {
-		System.out.println("Evicting all user cache...");
-	}
-
-	@PatchMapping("/{userId}/uploadimage")
+	@PatchMapping("/{userId}/profile-image")
 	@Operation(summary = "Upload user profile image", description = "Uploads an image file for the user")
 	public ResponseEntity<ResponseStructure<String>> uploadImage(
 			@Parameter(description = "Profile image file") @RequestParam MultipartFile file,
@@ -109,7 +97,7 @@ public class UserController {
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@GetMapping("/{userId}/user/getimage")
+	@GetMapping("/{userId}/profile-image")
 	@Operation(summary = "Get user profile image", description = "Retrieves the profile image of a user in JPEG format")
 	public ResponseEntity<byte[]> getImage(
 			@Parameter(description = "ID of the user whose image to retrieve") @PathVariable Integer userId) {

@@ -2,7 +2,6 @@ package foodapp.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,19 +26,21 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/orders")
+@RequiredArgsConstructor
 @Tag(name = "Order Management", description = "APIs for managing customer orders, payments, and order statuses")
 public class OrderController {
 
-	@Autowired
-	private OrderService orderService;
+	private final OrderService orderService;
 
-	@PostMapping("/generate-bill")
+	@PostMapping("/bill")
 	@Operation(summary = "Generate bill", description = "Generates a bill based on the order request before placing an order")
 	@ApiResponse(responseCode = "201", description = "Bill generated successfully")
-	public ResponseEntity<ResponseStructure<BillResponse>> generateBill(@RequestBody OrderRequest orderRequest) {
+	public ResponseEntity<ResponseStructure<BillResponse>> generateBill(@Valid @RequestBody OrderRequest orderRequest) {
 		ResponseStructure<BillResponse> response = new ResponseStructure<>();
 		response.setData(orderService.generateBill(orderRequest));
 		response.setMessage("Bill generated");
@@ -47,9 +48,9 @@ public class OrderController {
 		return new ResponseEntity<>(response, HttpStatus.CREATED);
 	}
 
-	@PostMapping("/pay-and-place-order")
+	@PostMapping("/pay")
 	@Operation(summary = "Pay and place order", description = "Processes payment and places the order")
-	public ResponseEntity<ResponseStructure<String>> payAndPlaceOrder(@RequestBody PaymentDto payment) {
+	public ResponseEntity<ResponseStructure<String>> payAndPlaceOrder(@Valid @RequestBody PaymentDto payment) {
 		String data = orderService.payAndPlaceOrder(payment);
 		ResponseStructure<String> apiResponse = new ResponseStructure<>();
 		apiResponse.setData(data);
@@ -58,7 +59,7 @@ public class OrderController {
 		return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
 	}
 
-	@DeleteMapping("/{orderId}/delete")
+	@DeleteMapping("/{orderId}")
 	@Operation(summary = "Delete an order", description = "Deletes an order by its ID")
 	public ResponseEntity<?> deleteOrderById(
 			@Parameter(description = "ID of the order to delete") @PathVariable Integer orderId) {
@@ -66,11 +67,11 @@ public class OrderController {
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 	}
 
-	@PutMapping("/{id}/update")
+	@PutMapping("/{id}")
 	@Operation(summary = "Update an order", description = "Updates order details for the given ID")
 	public ResponseEntity<Order> updateOrder(
 			@Parameter(description = "ID of the order to update") @PathVariable Integer id,
-			@RequestBody Order updatedOrder) {
+			@Valid @RequestBody Order updatedOrder) {
 		Order savedOrder = orderService.updateOrder(id, updatedOrder);
 		return ResponseEntity.ok(savedOrder);
 	}
@@ -85,7 +86,7 @@ public class OrderController {
 				.ok(new ResponseStructure<>(HttpStatus.OK.value(), "Order status updated successfully", updatedOrder));
 	}
 
-	@PatchMapping("/{id}/cancelorder")
+	@PatchMapping("/{id}/cancel")
 	@Operation(summary = "Cancel an order", description = "Cancels an existing order by its ID")
 	public ResponseEntity<ResponseStructure<String>> cancelOrder(
 			@Parameter(description = "ID of the order to cancel") @PathVariable Integer id) {
@@ -94,7 +95,7 @@ public class OrderController {
 				.ok(new ResponseStructure<>(HttpStatus.OK.value(), "Order status updated successfully", cancelOrder));
 	}
 
-	@GetMapping("/getall")
+	@GetMapping
 	@Operation(summary = "Get all orders", description = "Fetches a list of all orders in the system")
 	public ResponseEntity<ResponseStructure<List<Order>>> getAllOrders() {
 		List<Order> allOrders = orderService.getAllOrders();

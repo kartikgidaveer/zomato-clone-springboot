@@ -15,12 +15,13 @@ public class PaymentDto {
 	@Valid
 	private List<OrderItemRequest> orderItems;
 
-	private boolean paymentSuccessfull;
+	private boolean paymentSuccessful;
 
 	@NotNull
 	@Min(value = 1)
 	private Integer restaurantId;
 
 	@NotNull
+	@Min(value = 1)
 	private Integer userId;
 }

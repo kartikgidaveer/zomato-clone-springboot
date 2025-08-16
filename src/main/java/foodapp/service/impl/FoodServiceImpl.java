@@ -4,10 +4,14 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import foodapp.entity.Food;
@@ -15,13 +19,13 @@ import foodapp.entity.Restaurant;
 import foodapp.repository.FoodRepository;
 import foodapp.repository.RestaurantRepository;
 import foodapp.service.FoodService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class FoodServiceImpl implements FoodService {
-	@Autowired
-	private FoodRepository foodRepository;
-	@Autowired
-	private RestaurantRepository restaurantRepository;
+	private final FoodRepository foodRepository;
+	private final RestaurantRepository restaurantRepository;
 
 	@Override
 	public Food createFood(Food food) {
@@ -29,6 +33,7 @@ public class FoodServiceImpl implements FoodService {
 	}
 
 	@Override
+	@Cacheable(value = "food_cache", key = "#id")
 	public Food getFoodById(Integer id) {
 		Optional<Food> food = foodRepository.findById(id);
 		if (food.isPresent())
@@ -37,12 +42,15 @@ public class FoodServiceImpl implements FoodService {
 	}
 
 	@Override
+	@Cacheable(value = "food_page_cache", key = "'PAGE_' + #pageNum + '_' + #pageSize")
 	public Page<Food> getAllFoods(Integer pageNum, Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum, pageSize);
 		return foodRepository.findAll(pageable);
 	}
 
 	@Override
+	@CachePut(value = "food_cache", key = "#id")
+	@CacheEvict(value = "food_page_cache", allEntries = true)
 	public Food updateFood(Integer id, Food updatedFood) {
 		Food existingFood = getFoodById(id);
 		existingFood.setName(updatedFood.getName());
@@ -52,6 +60,8 @@ public class FoodServiceImpl implements FoodService {
 	}
 
 	@Override
+	@Caching(evict = { @CacheEvict(value = "food_cache", key = "#id"),
+			@CacheEvict(value = "food_page_cache", allEntries = true) })
 	public void deleteFood(Integer id) {
 		Food food = getFoodById(id);
 		List<Restaurant> restaurants = food.getRestaurants();
@@ -64,4 +74,9 @@ public class FoodServiceImpl implements FoodService {
 		foodRepository.delete(food);
 	}
 
+	@Scheduled(cron = "0 0 0 * * ?") // At midnight
+	@CacheEvict(value = { "food_cache", "food_page_cache" }, allEntries = true)
+	public void clearFoodCachesDaily() {
+		System.out.println("Daily food cache cleared at midnight.");
+	}
 }

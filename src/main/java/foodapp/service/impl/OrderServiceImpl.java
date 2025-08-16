@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import foodapp.dto.BillResponse;
@@ -33,7 +37,12 @@ public class OrderServiceImpl implements OrderService {
 	private final UserService userService;
 	private final OrderRepository orderRepository;
 
+	/**
+	 * Generates bill for an order request. Caching is used so repeated bill
+	 * calculations for the same restaurant & items are fast.
+	 */
 	@Override
+	@Cacheable(value = "bills", key = "#orderRequest.restaurantId + '-' + #orderRequest.orderItems.hashCode()")
 	public BillResponse generateBill(OrderRequest orderRequest) {
 		Restaurant restaurant = restaurantService.getById(orderRequest.getRestaurantId());
 		StringBuilder summary = new StringBuilder();
@@ -51,9 +60,14 @@ public class OrderServiceImpl implements OrderService {
 		return new BillResponse(restaurant.getName(), summary.toString(), totalPrice);
 	}
 
+	/**
+	 * Processes payment and places order. Clears bill cache since prices might
+	 * change after an order.
+	 */
 	@Override
+	@CacheEvict(value = "bills", allEntries = true)
 	public String payAndPlaceOrder(PaymentDto payment) {
-		if (payment.isPaymentSuccessfull()) {
+		if (payment.isPaymentSuccessful()) {
 			Order order = new Order();
 
 			Restaurant restaurant = restaurantService.getById(payment.getRestaurantId());
@@ -89,6 +103,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@CacheEvict(value = "bills", allEntries = true)
 	public void deleteOrderById(Integer id) {
 		if (!orderRepository.existsById(id)) {
 			throw new NoSuchElementException("No order present with id: " + id);
@@ -98,12 +113,11 @@ public class OrderServiceImpl implements OrderService {
 
 	@Override
 	public Order updateOrder(Integer id, Order updatedOrder) {
-//		Order existingOrder = orderRepository.findById(id)
-//				.orElseThrow(() -> new NoSuchElementException("No order found with id: " + id));
 		return null;
 	}
 
 	@Override
+	@CachePut(value = "orders", key = "#id")
 	public Order updateOrderStatusByAdmin(Integer id, OrderStatus status) {
 		Order order = getOrder(id);
 		order.setStatus(status);
@@ -111,6 +125,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Cacheable(value = "orders", key = "#id")
 	public Order getOrder(Integer id) {
 		Order order = orderRepository.findById(id)
 				.orElseThrow(() -> new NoSuchElementException("Order not found with id: " + id));
@@ -118,6 +133,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@CacheEvict(value = "orders", key = "#id")
 	public String cancelOrder(Integer id) {
 		Order order = getOrder(id);
 		order.setStatus(OrderStatus.CANCELLED);
@@ -126,12 +142,22 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Cacheable(value = "ordersAll")
 	public List<Order> getAllOrders() {
 		List<Order> orders = orderRepository.findAll();
 		if (orders == null || orders.isEmpty()) {
 			throw new NoSuchElementException("No orders present");
 		}
 		return orders;
+	}
+
+	/**
+	 * Scheduled cache clearing to avoid old prices. Runs every hour.
+	 */
+	@Scheduled(fixedRate = 60 * 60 * 1000)
+	@CacheEvict(value = "bills", allEntries = true)
+	public void clearBillCacheScheduled() {
+		System.out.println(("Scheduled task: Cleared all bill caches to avoid old data."));
 	}
 
 }

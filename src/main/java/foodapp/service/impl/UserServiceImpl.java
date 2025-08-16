@@ -4,6 +4,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,20 +28,24 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@Cacheable(value = "user_cache", key = "#id")
 	public User getUser(Integer id) {
 		return userRepository.findById(id)
 				.orElseThrow(() -> new NoSuchElementException("User not found with id :" + id));
 	}
 
 	@Override
+	@Cacheable(value = "user_cache", key = "'ALL_USERS'")
 	public List<User> getAllUsers() {
 		List<User> users = userRepository.findAll();
-		if (users == null || users.isEmpty())
+		if (users.isEmpty())
 			throw new NoSuchElementException("No users found");
 		return users;
 	}
 
 	@Override
+	@CachePut(value = "user_cache", key = "#id")
+	@CacheEvict(value = "user_cache", key = "'ALL_USERS'")
 	public User updateUser(User user, Integer id) {
 		User existingUser = getUser(id);
 		existingUser.setName(user.getName());
@@ -48,6 +57,8 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@CachePut(value = "user_cache", key = "#id")
+	@CacheEvict(value = "user_cache", key = "'ALL_USERS'")
 	public String uploadImage(MultipartFile file, Integer id) throws IOException {
 		byte[] image = file.getBytes();
 		User user = getUser(id);
@@ -68,10 +79,19 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	@Caching(evict = { 
+			@CacheEvict(value = "user_cache", key = "#id"),
+			@CacheEvict(value = "user_cache", key = "'ALL_USERS'") 
+			})
 	public void deleteUser(Integer id) {
 		User user = getUser(id);
 		userRepository.delete(user);
 
 	}
 
+	@Scheduled(fixedRate = 120000)
+	@CacheEvict(value = "user_cache", allEntries = true)
+	public void evictAllCache() {
+		System.out.println("Evicting all user cache...");
+	}
 }
