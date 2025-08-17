@@ -19,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import foodapp.dto.ResponseStructure;
-import foodapp.entity.User;
+import foodapp.dto.UserRequest;
+import foodapp.dto.UserResponse;
 import foodapp.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,42 +38,37 @@ public class UserController {
 
 	@PostMapping
 	@Operation(summary = "Create a new user", description = "Registers a new user in the system")
-	public ResponseEntity<ResponseStructure<User>> createUser(@Valid @RequestBody User user) {
-		User savedUser = userService.createUser(user);
+	public ResponseEntity<ResponseStructure<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
+		UserResponse savedUser = userService.createUser(request);
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(new ResponseStructure<>(HttpStatus.CREATED.value(), "User created Successfully!!", savedUser));
 	}
 
-	@GetMapping("/{userId}")
 	@Operation(summary = "Get a user by ID", description = "Retrieves a user’s details using their ID")
-	public ResponseEntity<ResponseStructure<User>> getUser(
-			@Parameter(description = "ID of the user to retrieve") @PathVariable Integer userId) {
-		ResponseStructure<User> apiResponse = new ResponseStructure<>();
-		apiResponse.setData(userService.getUser(userId));
-		apiResponse.setMessage("User found successfully!!");
-		apiResponse.setStatusCode(HttpStatus.OK.value());
+	@GetMapping("/{userId}")
+	public ResponseEntity<ResponseStructure<UserResponse>> getUser(@PathVariable Integer userId) {
+		UserResponse user = userService.getUser(userId);
+		ResponseStructure<UserResponse> apiResponse = new ResponseStructure<>(HttpStatus.OK.value(),
+				"User found successfully!!", user);
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@GetMapping
 	@Operation(summary = "Get all users", description = "Fetches all users from the system. Cached for better performance.")
-	public ResponseEntity<ResponseStructure<List<User>>> getAllUsers() {
-		ResponseStructure<List<User>> apiResponse = new ResponseStructure<>();
-		apiResponse.setData(userService.getAllUsers());
-		apiResponse.setMessage("Users fetched successfully!!");
-		apiResponse.setStatusCode(HttpStatus.OK.value());
+	@GetMapping
+	public ResponseEntity<ResponseStructure<List<UserResponse>>> getAllUsers() {
+		List<UserResponse> users = userService.getAllUsers();
+		ResponseStructure<List<UserResponse>> apiResponse = new ResponseStructure<>(HttpStatus.OK.value(),
+				"Users fetched successfully!!", users);
 		return ResponseEntity.ok(apiResponse);
 	}
 
-	@PutMapping("/{userId}")
 	@Operation(summary = "Update a user", description = "Updates user details for a given ID")
-	public ResponseEntity<ResponseStructure<User>> updateUser(
-			@Parameter(description = "ID of the user to update") @PathVariable Integer userId,
-			@Valid @RequestBody User user) {
-		ResponseStructure<User> apiResponse = new ResponseStructure<>();
-		apiResponse.setData(userService.updateUser(user, userId));
-		apiResponse.setMessage("User updated successfully!!");
-		apiResponse.setStatusCode(HttpStatus.OK.value());
+	@PutMapping("/{userId}")
+	public ResponseEntity<ResponseStructure<UserResponse>> updateUser(@PathVariable Integer userId,
+			@Valid @RequestBody UserRequest request) {
+		UserResponse updated = userService.updateUser(request, userId);
+		ResponseStructure<UserResponse> apiResponse = new ResponseStructure<>(HttpStatus.OK.value(),
+				"User updated successfully!!", updated);
 		return ResponseEntity.ok(apiResponse);
 	}
 

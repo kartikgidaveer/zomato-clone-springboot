@@ -1,4 +1,10 @@
 target/
 **/target/
-target/
-**/target/
+.idea/
+.classpath
+.project
+.settings/
+bin/
+.DS_Store
+*.iml
+/.mvn/wrapper/maven-wrapper.jar
