@@ -1,6 +1,11 @@
 package foodapp.entity;
 
+import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -17,27 +22,30 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@SuppressWarnings("serial")
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "Users")
-public class User {
+public class User implements UserDetails {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 
 	@NotBlank
-	private String name;
+	private String username;
 
 	@NotBlank(message = "Email cannot be blank")
 	@Email(message = "Invalid email format")
 	private String email;
 
-	private String contactNumber; 
+	private String contactNumber;
 
 	private String address;
+
+	private String role;
 
 	@NotBlank
 	@Size(min = 8, max = 20)
@@ -48,4 +56,14 @@ public class User {
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
 	private List<Order> orders;
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return List.of(new SimpleGrantedAuthority(role));
+	}
+
+	@Override
+	public String getUsername() {
+		return username;
+	}
 }

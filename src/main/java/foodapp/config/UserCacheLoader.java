@@ -15,8 +15,13 @@ public class UserCacheLoader {
 
 	@PostConstruct
 	public void loadUserCache() {
-		var users = userService.getAllUsers(); // fetch from DB once
-		cacheManager.getCache("user_cache").put("ALL", users); // preload into cache
-		System.out.println("User cache preloaded with " + users.size() + " users");
+		var users = userService.getAllUsers(); // fetch from DB
+		var cache = cacheManager.getCache("user_cache");
+		if (cache != null) {
+			cache.put("ALL", users);
+			System.out.println("User cache preloaded with " + users.size() + " users");
+		} else {
+			System.err.println("user_cache not configured!");
+		}
 	}
 }

@@ -9,6 +9,9 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
 	private final UserRepository userRepository;
 
 	@Override
@@ -48,7 +51,7 @@ public class UserServiceImpl implements UserService {
 	@CacheEvict(value = "user_cache", key = "'ALL_USERS'")
 	public User updateUser(User user, Integer id) {
 		User existingUser = getUser(id);
-		existingUser.setName(user.getName());
+		existingUser.setUsername(user.getUsername());
 		existingUser.setAddress(user.getAddress());
 		existingUser.setContactNumber(user.getContactNumber());
 		existingUser.setEmail(user.getEmail());
@@ -79,10 +82,8 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	@Caching(evict = { 
-			@CacheEvict(value = "user_cache", key = "#id"),
-			@CacheEvict(value = "user_cache", key = "'ALL_USERS'") 
-			})
+	@Caching(evict = { @CacheEvict(value = "user_cache", key = "#id"),
+			@CacheEvict(value = "user_cache", key = "'ALL_USERS'") })
 	public void deleteUser(Integer id) {
 		User user = getUser(id);
 		userRepository.delete(user);
@@ -93,5 +94,11 @@ public class UserServiceImpl implements UserService {
 	@CacheEvict(value = "user_cache", allEntries = true)
 	public void evictAllCache() {
 		System.out.println("Evicting all user cache...");
+	}
+
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		return userRepository.findByUsername(username)
+				.orElseThrow(() -> new UsernameNotFoundException("Username not found"));
 	}
 }

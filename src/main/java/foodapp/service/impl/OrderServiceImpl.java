@@ -96,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
 			order.setOrderItems(items);
 			order.setStatus(OrderStatus.PLACED);
 			orderRepository.save(order);
-			return "Order has been placed by " + user.getName();
+			return "Order has been placed by " + user.getUsername();
 		} else {
 			throw new PaymentFailedException("Payment was not successful, hence order cannot be placed");
 		}
