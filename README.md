@@ -1,4 +1,4 @@
-# Zomato Clone - Spring Boot
+# FoodApp - Spring Boot
 
 A Spring Boot based online food ordering application inspired by Zomato.
 
