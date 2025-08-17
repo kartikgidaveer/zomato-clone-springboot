@@ -5,18 +5,19 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import foodapp.entity.User;
+import foodapp.dto.UserRequest;
+import foodapp.dto.UserResponse;
 
 public interface UserService {
 
-	User createUser(User user);
+	UserResponse createUser(UserRequest request);
 
-	User getUser(Integer id);
+	UserResponse getUser(Integer id);
 
-	List<User> getAllUsers();
+	List<UserResponse> getAllUsers();
 
-	User updateUser(User user, Integer id);
-	
+	UserResponse updateUser(UserRequest request, Integer id);
+
 	void deleteUser(Integer id);
 
 	String uploadImage(MultipartFile file, Integer id) throws IOException;

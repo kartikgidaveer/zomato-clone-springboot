@@ -22,10 +22,10 @@ import foodapp.entity.Restaurant;
 import foodapp.entity.User;
 import foodapp.exception.PaymentFailedException;
 import foodapp.repository.OrderRepository;
+import foodapp.repository.UserRepository;
 import foodapp.service.FoodService;
 import foodapp.service.OrderService;
 import foodapp.service.RestaurantService;
-import foodapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,7 +34,7 @@ public class OrderServiceImpl implements OrderService {
 
 	private final RestaurantService restaurantService;
 	private final FoodService foodService;
-	private final UserService userService;
+	private final UserRepository userRepository;
 	private final OrderRepository orderRepository;
 
 	/**
@@ -71,7 +71,8 @@ public class OrderServiceImpl implements OrderService {
 			Order order = new Order();
 
 			Restaurant restaurant = restaurantService.getById(payment.getRestaurantId());
-			User user = userService.getUser(payment.getUserId());
+			User user = userRepository.findById(payment.getUserId())
+					.orElseThrow(() -> new NoSuchElementException("User not found with id :" + payment.getUserId()));
 			order.setRestaurant(restaurant);
 			order.setUser(user);
 
@@ -96,7 +97,7 @@ public class OrderServiceImpl implements OrderService {
 			order.setOrderItems(items);
 			order.setStatus(OrderStatus.PLACED);
 			orderRepository.save(order);
-			return "Order has been placed by " + user.getName();
+			return "Order has been placed by " + user.getUsername();
 		} else {
 			throw new PaymentFailedException("Payment was not successful, hence order cannot be placed");
 		}
